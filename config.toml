@@ -1,0 +1,36 @@
+# You can redefine common settings
+# Put this config to ~/.config/launchpad/config.toml
+
+cache_file = "~/.cache/launchpad.cache"
+
+# List of applications that will not be displayed in the grid.
+# Matching is done by the "Name" field from the .desktop file.
+ignored_apps = [
+    "xterm",
+    "uxterm",
+]
+
+# Paths where the launcher searches for .desktop files.
+# Using ~/ for home directory is supported.
+app_search_paths = [
+    "/usr/share/applications",
+    "~/.local/share/applications",
+    "/var/lib/flatpak/exports/share/applications"
+]
+
+[battery]
+# Device name in /sys/class/power_supply/
+device = "BAT0"
+
+[notifications]
+# Commands for managing notifications (using dunst as an example).
+# Represented as arrays: ["command", "argument1", "argument2"]
+status_cmd = ["dunstctl", "is-paused"]
+mute_cmd = ["dunstctl", "set-paused", "true"]
+unmute_cmd = ["dunstctl", "set-paused", "false"]
+clear_all_cmd = ["dunstctl", "close-all"]
+
+[calculator]
+# Command for calculations. Result is expected in stdout.
+# -- is used so that qalc does not interpret the expression as its own flags.
+command = ["qalc", "-t", "--"]

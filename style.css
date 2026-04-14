@@ -1,0 +1,286 @@
+/* Background and Main Window */
+.spotlight-overlay {
+    background-color: rgba(36, 41, 51, 0.5);
+}
+
+.spotlight-container {
+    background-color: rgba(46, 52, 64, 0.95); /* Nord 1 */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+/* Search Input */
+entry.spotlight-input,
+entry.spotlight-input:focus,
+entry.spotlight-input:focus-within {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    min-height: 56px;
+}
+
+entry.spotlight-input text,
+entry.spotlight-input text:focus {
+    color: #eceff4;
+    font-size: 42px;
+    font-weight: 200;
+    caret-color: #88c0d0;
+    box-shadow: none;
+}
+
+window .spotlight-container searchentry.spotlight-input image.left {
+    color: #88c0d0;
+    -gtk-icon-size: 36px;
+    margin-right: 16px;
+}
+
+window .spotlight-container searchentry.spotlight-input image.right {
+    color: #4c566a;
+    -gtk-icon-size: 24px;
+}
+
+/* Separator */
+.spotlight-separator {
+    min-height: 1px;
+    background-color: #434c5e; /* Nord 2 */
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Status Bar */
+.status-bar {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(216, 222, 233, 0.05);
+}
+
+/* Status Pills */
+menubutton.status-pill > button,
+label.status-pill {
+    background-color: rgba(67, 76, 94, 0.4); /* Nord 3 */
+    border: 1px solid rgba(255, 255, 255, 0.02);
+    border-radius: 100px;
+    padding: 4px 12px;
+    color: #d8dee9; /* Nord 4 */
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+menubutton.status-pill > button:hover {
+    background-color: #4c566a; /* Nord 3 */
+    color: #eceff4;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+menubutton.status-pill > button:active,
+menubutton.status-pill > button:checked {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #eceff4;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+/* App Grid */
+.app-icon-placeholder {
+    background: linear-gradient(135deg, #434c5e 0%, #3b4252 100%);
+    border: 1px solid rgba(255,255,255, 0.05);
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.app-label {
+    color: #e5e9f0; /* Nord 5 */
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+/* App Grid Focus */
+flowboxchild {
+    padding: 0;
+    background: transparent;
+    outline: none;
+}
+flowboxchild:focus, flowboxchild:selected {
+    background: transparent;
+    outline: none;
+    box-shadow: none;
+}
+
+.app-item-box {
+    border-radius: 12px;
+    padding: 10px;
+    transition: all 0.15s ease;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+}
+
+.app-item-box:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.app-item-box.selected-app {
+    background-color: rgba(136, 192, 208, 0.1); /* Nord 8 */
+    outline: 2px solid rgba(136, 192, 208, 0.25);
+}
+
+/* Calculator */
+.calc-result {
+    color: #88c0d0; /* Nord 8 */
+    font-size: 56px;
+    font-weight: 300;
+    letter-spacing: -1px;
+}
+
+.calc-expression {
+    color: #d8dee9; /* Nord 4 */
+    font-size: 20px;
+    font-weight: 200;
+    opacity: 0.6;
+}
+
+/* Popovers and Calendar (Nord 1) */
+popover.nord-popover {
+    margin: 9px;
+}
+
+popover.nord-popover contents {
+    background-color: rgba(46, 52, 64, 0.95); /* Nord 1 */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+    padding: 10px;
+}
+
+.nord-calendar {
+    background: transparent;
+    color: #d8dee9;
+    border: none;
+}
+
+.nord-calendar header,
+.nord-calendar grid,
+.nord-calendar button {
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
+
+.nord-calendar header {
+    padding-bottom: 8px;
+}
+
+.nord-calendar header label {
+    font-weight: 300;
+    color: #eceff4;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+}
+
+.nord-calendar header button {
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: 100px;
+    color: #4c566a;
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+.nord-calendar header button:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #88c0d0;
+}
+
+.nord-calendar grid {
+    border-spacing: 4px;
+}
+
+.nord-calendar grid label.day-name {
+    color: #434c5e;
+    font-weight: 700;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-bottom: 6px;
+}
+
+.nord-calendar grid label.day-number {
+    font-size: 13px;
+    font-weight: 300;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    border-radius: 100px;
+    color: #e5e9f0;
+    transition: all 0.1s ease;
+}
+
+.nord-calendar grid label.day-number:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.nord-calendar grid label.day-number.other-month {
+    color: #3b4252;
+    font-weight: 300;
+}
+
+.nord-calendar grid label.day-number.other-month:hover {
+    background-color: transparent;
+    color: #4c566a;
+}
+
+.nord-calendar grid label.today {
+    background-color: #eceff4;
+    color: #2e3440;
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px rgba(136, 192, 208, 0.6);
+}
+
+.nord-calendar grid label.today:hover {
+    background-color: #e5e9f0; /* Nord 5 */
+    color: #2e3440;
+}
+
+/* Menu Items */
+button.menu-item-btn {
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #d8dee9;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    transition: background-color 0.1s ease;
+}
+
+button.menu-item-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #eceff4;
+}
+
+.menu-checkmark {
+    color: #88c0d0; /* Nord 8 */
+    font-weight: 900;
+    font-size: 14px;
+    min-width: 16px;
+}
+
+/* Property Tables */
+.table-key {
+    color: #81a1c1; /* Nord 9 */
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.table-value {
+    color: #eceff4; /* Nord 6 */
+    font-size: 13px;
+    font-weight: 500;
+}
