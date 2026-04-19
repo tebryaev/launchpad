@@ -7,8 +7,16 @@ pub enum NotificationStatus {
     Muted,
 }
 
+fn spawn_cmd(cmd: &[String]) {
+    if let [bin, args @ ..] = cmd {
+        let _ = Command::new(bin).args(args).spawn();
+    }
+}
+
 pub fn get_status() -> NotificationStatus {
-    let cfg = CONFIG.get().expect("Config not initialized");
+    let Some(cfg) = CONFIG.get() else {
+        return NotificationStatus::Enabled;
+    };
 
     if let [bin, args @ ..] = cfg.notifications.status_cmd.as_slice() {
         if let Ok(output) = Command::new(bin).args(args).output() {
@@ -24,24 +32,18 @@ pub fn get_status() -> NotificationStatus {
 
 pub fn enable() {
     if let Some(cfg) = CONFIG.get() {
-        if let [bin, args @ ..] = cfg.notifications.unmute_cmd.as_slice() {
-            let _ = Command::new(bin).args(args).spawn();
-        }
+        spawn_cmd(&cfg.notifications.unmute_cmd);
     }
 }
 
 pub fn mute() {
     if let Some(cfg) = CONFIG.get() {
-        if let [bin, args @ ..] = cfg.notifications.mute_cmd.as_slice() {
-            let _ = Command::new(bin).args(args).spawn();
-        }
+        spawn_cmd(&cfg.notifications.mute_cmd);
     }
 }
 
 pub fn clear_all() {
     if let Some(cfg) = CONFIG.get() {
-        if let [bin, args @ ..] = cfg.notifications.clear_all_cmd.as_slice() {
-            let _ = Command::new(bin).args(args).spawn();
-        }
+        spawn_cmd(&cfg.notifications.clear_all_cmd);
     }
 }

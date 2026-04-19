@@ -23,6 +23,7 @@ pub struct AppWidgetSlot {
 
 #[derive(Debug)]
 pub enum AppsMsg {
+    LoadApps,
     UpdateFilter(String),
     Launch(usize),
     LaunchSelected,
@@ -58,15 +59,6 @@ impl SimpleComponent for AppsModel {
     }
 
     fn init(_init: (), root: Self::Root, sender: ComponentSender<Self>) -> ComponentParts<Self> {
-        let mut apps = get_all_apps();
-        let usage = load_usage();
-
-        apps.sort_by(|a, b| {
-            let count_a = usage.get(&a.name).unwrap_or(&0);
-            let count_b = usage.get(&b.name).unwrap_or(&0);
-            count_b.cmp(count_a).then(a.name.cmp(&b.name))
-        });
-
         let widgets = view_output!();
         let mut widget_slots = Vec::with_capacity(MAX_APPLICATIONS);
 
@@ -112,54 +104,40 @@ impl SimpleComponent for AppsModel {
             });
         }
 
-        let mut model = Self {
+        let model = Self {
             filter_query: "".to_string(),
-            all_apps: apps,
+            all_apps: Vec::new(),
             displayed_apps: Vec::new(),
             widget_slots,
             selected_idx: 0,
         };
 
-        model.update(AppsMsg::UpdateFilter("".to_string()), sender.clone());
+        let load_sender = sender.clone();
+        gtk::glib::idle_add_local_once(move || {
+            load_sender.input(AppsMsg::LoadApps);
+        });
 
         ComponentParts { model, widgets }
     }
 
     fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>) {
         match msg {
+            AppsMsg::LoadApps => {
+                let mut apps = get_all_apps();
+                let usage = load_usage();
+
+                apps.sort_by(|a, b| {
+                    let count_a = usage.get(&a.name).unwrap_or(&0);
+                    let count_b = usage.get(&b.name).unwrap_or(&0);
+                    count_b.cmp(count_a).then(a.name.cmp(&b.name))
+                });
+
+                self.all_apps = apps;
+                self.apply_filter(&sender);
+            }
             AppsMsg::UpdateFilter(q) => {
                 self.filter_query = q.to_lowercase();
-                self.displayed_apps.clear();
-
-                for app in &self.all_apps {
-                    if app.name.to_lowercase().contains(&self.filter_query) {
-                        self.displayed_apps.push(app.clone());
-                        if self.displayed_apps.len() == MAX_APPLICATIONS {
-                            break;
-                        }
-                    }
-                }
-
-                self.selected_idx = 0;
-
-                for (i, slot) in self.widget_slots.iter().enumerate() {
-                    if let Some(app) = self.displayed_apps.get(i) {
-                        slot.label.set_label(&app.name);
-
-                        if app.icon.starts_with('/') {
-                            slot.icon.set_from_file(Some(&app.icon));
-                        } else {
-                            slot.icon.set_icon_name(Some(&app.icon));
-                        }
-
-                        slot.flow_child.set_visible(true);
-                    } else {
-                        slot.flow_child.set_visible(false);
-                    }
-                }
-
-                self.update_selection_visuals();
-                let _ = sender.output(self.displayed_apps.len());
+                self.apply_filter(&sender);
             }
             AppsMsg::MoveSelection(dx, dy) => {
                 let visible_count = self.displayed_apps.len();
@@ -191,6 +169,40 @@ impl SimpleComponent for AppsModel {
 }
 
 impl AppsModel {
+    fn apply_filter(&mut self, sender: &ComponentSender<Self>) {
+        self.displayed_apps.clear();
+
+        for app in &self.all_apps {
+            if app.name.to_lowercase().contains(&self.filter_query) {
+                self.displayed_apps.push(app.clone());
+                if self.displayed_apps.len() == MAX_APPLICATIONS {
+                    break;
+                }
+            }
+        }
+
+        self.selected_idx = 0;
+
+        for (i, slot) in self.widget_slots.iter().enumerate() {
+            if let Some(app) = self.displayed_apps.get(i) {
+                slot.label.set_label(&app.name);
+
+                if app.icon.starts_with('/') {
+                    slot.icon.set_from_file(Some(&app.icon));
+                } else {
+                    slot.icon.set_icon_name(Some(&app.icon));
+                }
+
+                slot.flow_child.set_visible(true);
+            } else {
+                slot.flow_child.set_visible(false);
+            }
+        }
+
+        self.update_selection_visuals();
+        let _ = sender.output(self.displayed_apps.len());
+    }
+
     fn update_selection_visuals(&self) {
         for (i, slot) in self.widget_slots.iter().enumerate() {
             if !slot.flow_child.is_visible() {

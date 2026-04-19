@@ -1,26 +1,19 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-fn expand_path(path: &str) -> PathBuf {
-    if let Some(stripped) = path.strip_prefix("~/") {
-        if let Some(mut home) = dirs::home_dir() {
-            home.push(stripped);
-            return home;
-        }
-    }
-    PathBuf::from(path)
-}
+use crate::core::utils::expand_path;
 
 fn get_usage_file() -> PathBuf {
     if let Some(cfg) = crate::core::config::CONFIG.get() {
         if !cfg.cache_file.is_empty() {
-            return expand_path(&cfg.cache_file);
+            if let Some(p) = expand_path(&cfg.cache_file) {
+                return p;
+            }
         }
     }
 
     dirs::cache_dir()
         .unwrap_or_else(|| {
-            // Fallback if cache_dir is unavailable
             dirs::home_dir()
                 .map(|mut p| {
                     p.push(".cache");
@@ -58,8 +51,13 @@ pub fn record_launch(app_name: &str) {
     let path = get_usage_file();
 
     if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            log::warn!("Failed to create usage cache dir {}: {}", parent.display(), e);
+            return;
+        }
     }
 
-    let _ = std::fs::write(path, content);
+    if let Err(e) = std::fs::write(&path, content) {
+        log::warn!("Failed to write usage cache {}: {}", path.display(), e);
+    }
 }

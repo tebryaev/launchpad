@@ -3,6 +3,8 @@ use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
+use crate::core::utils::expand_path;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct AppInfo {
     pub name: String,
@@ -22,16 +24,9 @@ pub fn get_all_apps() -> Vec<AppInfo> {
         .unwrap_or_default();
 
     for path_str in search_paths {
-        let path = if path_str.starts_with("~/") {
-            match dirs::home_dir() {
-                Some(home) => home.join(&path_str[2..]),
-                None => {
-                    log::warn!("Could not resolve ~/ in path: {}", path_str);
-                    continue;
-                }
-            }
-        } else {
-            PathBuf::from(path_str)
+        let Some(path) = expand_path(&path_str) else {
+            log::warn!("Could not resolve ~/ in path: {}", path_str);
+            continue;
         };
 
         log::debug!("Searching for desktop files in: {}", path.display());
@@ -124,6 +119,6 @@ pub fn launch_app(exec_command: &str) {
         .spawn();
 
     if let Err(e) = result {
-        eprintln!("Launch error: {}", e);
+        log::error!("Launch error: {}", e);
     }
 }

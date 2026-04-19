@@ -1,13 +1,28 @@
-use chrono::Local;
 use gtk::glib::ControlFlow;
 use gtk4::prelude::*;
-use relm4::{gtk, ComponentParts, ComponentSender, RelmWidgetExt, SimpleComponent};
+use relm4::{gtk, ComponentParts, ComponentSender, SimpleComponent};
+use time::macros::format_description;
+use time::OffsetDateTime;
 
 pub struct TimeModel {
     pub current_time: String,
     pub current_date: String,
 
     timer_id: Option<gtk::glib::SourceId>,
+}
+
+fn now_local() -> OffsetDateTime {
+    OffsetDateTime::now_local().unwrap_or_else(|_| OffsetDateTime::now_utc())
+}
+
+fn format_time(now: OffsetDateTime) -> String {
+    let fmt = format_description!("[hour]:[minute]");
+    now.format(&fmt).unwrap_or_default()
+}
+
+fn format_date(now: OffsetDateTime) -> String {
+    let fmt = format_description!("[day] [month repr:short]");
+    now.format(&fmt).unwrap_or_default()
 }
 
 #[derive(Debug)]
@@ -49,25 +64,33 @@ impl SimpleComponent for TimeModel {
                 set_has_arrow: false,
                 add_css_class: "nord-popover",
 
-                #[wrap(Some)]
-                set_child = &gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    set_margin_all: 8,
-
-                    gtk::Calendar {
-                        add_css_class: "nord-calendar",
-                        set_show_heading: true,
-                        set_show_day_names: true,
+                connect_show => move |popover| {
+                    if popover.child().is_some() {
+                        return;
                     }
-                }
+                    let calendar = gtk::Calendar::new();
+                    calendar.add_css_class("nord-calendar");
+                    calendar.set_show_heading(true);
+                    calendar.set_show_day_names(true);
+
+                    let wrapper = gtk::Box::new(gtk::Orientation::Vertical, 0);
+                    wrapper.set_margin_start(8);
+                    wrapper.set_margin_end(8);
+                    wrapper.set_margin_top(8);
+                    wrapper.set_margin_bottom(8);
+                    wrapper.append(&calendar);
+
+                    popover.set_child(Some(&wrapper));
+                },
             }
         },
     }
 
     fn init(_init: (), root: Self::Root, sender: ComponentSender<Self>) -> ComponentParts<Self> {
+        let now = now_local();
         let model = Self {
-            current_time: Local::now().format("%H:%M").to_string(),
-            current_date: Local::now().format("%d %b").to_string(),
+            current_time: format_time(now),
+            current_date: format_date(now),
             timer_id: None,
         };
 
@@ -78,8 +101,9 @@ impl SimpleComponent for TimeModel {
     fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>) {
         match msg {
             TimeMsg::WindowShown => {
-                self.current_time = Local::now().format("%H:%M").to_string();
-                self.current_date = Local::now().format("%d %b").to_string();
+                let now = now_local();
+                self.current_time = format_time(now);
+                self.current_date = format_date(now);
 
                 if self.timer_id.is_none() {
                     let sender_clone = sender.clone();
@@ -98,12 +122,12 @@ impl SimpleComponent for TimeModel {
                 }
             }
             TimeMsg::Tick => {
-                let now = Local::now();
-                let new_time = now.format("%H:%M").to_string();
+                let now = now_local();
+                let new_time = format_time(now);
 
                 if self.current_time != new_time {
                     self.current_time = new_time;
-                    self.current_date = now.format("%d %b").to_string();
+                    self.current_date = format_date(now);
                 }
             }
         }

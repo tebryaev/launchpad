@@ -7,6 +7,17 @@ use crate::core::battery::{get_battery_info, BatteryInfo, BatteryStatus};
 pub struct BatteryModel {
     info: Option<BatteryInfo>,
     timer_id: Option<gtk::glib::SourceId>,
+    popover: Option<gtk::Popover>,
+    popover_labels: Option<BatteryPopoverLabels>,
+}
+
+struct BatteryPopoverLabels {
+    status: gtk::Label,
+    charge: gtk::Label,
+    power_key: gtk::Label,
+    power: gtk::Label,
+    remaining_key: gtk::Label,
+    remaining: gtk::Label,
 }
 
 #[derive(Debug)]
@@ -14,6 +25,7 @@ pub enum BatteryMsg {
     Tick,
     WindowShown,
     WindowHidden,
+    PopoverShow,
 }
 
 fn get_battery_icon(info: &BatteryInfo) -> &'static str {
@@ -31,6 +43,29 @@ fn get_battery_icon(info: &BatteryInfo) -> &'static str {
         13..=24 => "󰁺",
         0..=12 => "󰂎",
         _ => "󰂃",
+    }
+}
+
+fn status_text(info: &BatteryInfo) -> &'static str {
+    match info.status {
+        BatteryStatus::Charging => "Charging",
+        BatteryStatus::Discharging => "Discharging",
+        BatteryStatus::Full => "Full",
+        BatteryStatus::Unknown => "Unknown",
+    }
+}
+
+fn remaining_text(info: &BatteryInfo) -> String {
+    if info.time_remaining_min > 0.0 && info.time_remaining_min < 1440.0 {
+        let h = (info.time_remaining_min / 60.0) as i32;
+        let m = (info.time_remaining_min % 60.0) as i32;
+        if h > 0 {
+            format!("{}h {}m", h, m)
+        } else {
+            format!("{}m", m)
+        }
+    } else {
+        "—".to_string()
     }
 }
 
@@ -67,100 +102,23 @@ impl SimpleComponent for BatteryModel {
                 set_position: gtk::PositionType::Top,
                 set_has_arrow: false,
 
-                #[wrap(Some)]
-                set_child = &gtk::Grid {
-                    set_margin_all: 18,
-                    set_row_spacing: 16,
-                    set_column_spacing: 32,
-
-                    attach[0, 0, 1, 1] = &gtk::Label {
-                        set_label: "Status",
-                        set_halign: gtk::Align::Start,
-                        add_css_class: "table-key",
-                    },
-                    attach[1, 0, 1, 1] = &gtk::Label {
-                        #[watch]
-                        set_label: &match &model.info {
-                            Some(info) => match info.status {
-                                BatteryStatus::Charging => "Charging",
-                                BatteryStatus::Discharging => "Discharging",
-                                BatteryStatus::Full => "Full",
-                                BatteryStatus::Unknown => "Unknown",
-                            },
-                            None => "N/A",
-                        },
-                        set_halign: gtk::Align::End,
-                        set_hexpand: true,
-                        add_css_class: "table-value",
-                    },
-
-                    attach[0, 1, 1, 1] = &gtk::Label {
-                        set_label: "Charge",
-                        set_halign: gtk::Align::Start,
-                        add_css_class: "table-key",
-                    },
-                    attach[1, 1, 1, 1] = &gtk::Label {
-                        #[watch]
-                        set_label: &match &model.info {
-                            Some(info) => format!("{}%", info.capacity),
-                            None => "N/A".to_string(),
-                        },
-                        set_halign: gtk::Align::End,
-                        add_css_class: "table-value",
-                    },
-
-                    attach[0, 2, 1, 1] = &gtk::Label {
-                        #[watch]
-                        set_label: &match &model.info {
-                            Some(info) if info.status == BatteryStatus::Charging => "Power",
-                            _ => "Consumption",
-                        },
-                        set_halign: gtk::Align::Start,
-                        add_css_class: "table-key",
-                    },
-                    attach[1, 2, 1, 1] = &gtk::Label {
-                        #[watch]
-                        set_label: &match &model.info {
-                            Some(info) => format!("{:.1} W", info.power_w),
-                            None => "0.0 W".to_string(),
-                        },
-                        set_halign: gtk::Align::End,
-                        add_css_class: "table-value",
-                    },
-
-                    attach[0, 3, 1, 1] = &gtk::Label {
-                        #[watch]
-                        set_label: &match &model.info {
-                            Some(info) if info.status == BatteryStatus::Charging => "Until full",
-                            _ => "Remaining",
-                        },
-                        set_halign: gtk::Align::Start,
-                        add_css_class: "table-key",
-                    },
-                    attach[1, 3, 1, 1] = &gtk::Label {
-                        #[watch]
-                        set_label: &match &model.info {
-                            Some(info) if info.time_remaining_min > 0.0 && info.time_remaining_min < 1440.0 => {
-                                let h = (info.time_remaining_min / 60.0) as i32;
-                                let m = (info.time_remaining_min % 60.0) as i32;
-                                if h > 0 { format!("{}h {}m", h, m) } else { format!("{}m", m) }
-                            },
-                            _ => "—".to_string(),
-                        },
-                        set_halign: gtk::Align::End,
-                        add_css_class: "table-value",
-                    },
-                }
+                connect_show[sender] => move |_| {
+                    sender.input(BatteryMsg::PopoverShow);
+                },
             }
         },
     }
 
     fn init(_init: (), root: Self::Root, sender: ComponentSender<Self>) -> ComponentParts<Self> {
         let model = Self {
-            info: get_battery_info(),
+            info: None,
             timer_id: None,
+            popover: None,
+            popover_labels: None,
         };
         let widgets = view_output!();
+        let popover = root.popover();
+        let model = Self { popover, ..model };
         ComponentParts { model, widgets }
     }
 
@@ -187,7 +145,104 @@ impl SimpleComponent for BatteryModel {
                 let new_info = get_battery_info();
                 if self.info != new_info {
                     self.info = new_info;
+                    self.refresh_popover();
                 }
+            }
+            BatteryMsg::PopoverShow => {
+                self.info = get_battery_info();
+                self.ensure_popover_content();
+                self.refresh_popover();
+            }
+        }
+    }
+}
+
+impl BatteryModel {
+    fn ensure_popover_content(&mut self) {
+        if self.popover_labels.is_some() {
+            return;
+        }
+        let Some(popover) = &self.popover else { return };
+
+        let grid = gtk::Grid::new();
+        grid.set_margin_all(18);
+        grid.set_row_spacing(16);
+        grid.set_column_spacing(32);
+
+        fn key_label(text: &str) -> gtk::Label {
+            let l = gtk::Label::new(Some(text));
+            l.set_halign(gtk::Align::Start);
+            l.add_css_class("table-key");
+            l
+        }
+
+        fn value_label() -> gtk::Label {
+            let l = gtk::Label::new(None);
+            l.set_halign(gtk::Align::End);
+            l.add_css_class("table-value");
+            l
+        }
+
+        let status_key = key_label("Status");
+        let status = value_label();
+        status.set_hexpand(true);
+
+        let charge_key = key_label("Charge");
+        let charge = value_label();
+
+        let power_key = key_label("Consumption");
+        let power = value_label();
+
+        let remaining_key = key_label("Remaining");
+        let remaining = value_label();
+
+        grid.attach(&status_key, 0, 0, 1, 1);
+        grid.attach(&status, 1, 0, 1, 1);
+        grid.attach(&charge_key, 0, 1, 1, 1);
+        grid.attach(&charge, 1, 1, 1, 1);
+        grid.attach(&power_key, 0, 2, 1, 1);
+        grid.attach(&power, 1, 2, 1, 1);
+        grid.attach(&remaining_key, 0, 3, 1, 1);
+        grid.attach(&remaining, 1, 3, 1, 1);
+
+        popover.set_child(Some(&grid));
+
+        self.popover_labels = Some(BatteryPopoverLabels {
+            status,
+            charge,
+            power_key,
+            power,
+            remaining_key,
+            remaining,
+        });
+    }
+
+    fn refresh_popover(&self) {
+        let Some(labels) = &self.popover_labels else { return };
+        match &self.info {
+            Some(info) => {
+                labels.status.set_label(status_text(info));
+                labels.charge.set_label(&format!("{}%", info.capacity));
+                labels.power_key.set_label(if info.status == BatteryStatus::Charging {
+                    "Power"
+                } else {
+                    "Consumption"
+                });
+                labels.power.set_label(&format!("{:.1} W", info.power_w));
+                labels.remaining_key.set_label(if info.status == BatteryStatus::Charging {
+                    "Until full"
+                } else {
+                    "Remaining"
+                });
+                labels.remaining.set_label(&remaining_text(info));
+            }
+            None => {
+                labels.status.set_label("N/A");
+                labels.charge.set_label("N/A");
+                labels.power_key.set_label("Consumption");
+                labels.power.set_label("0.0 W");
+                labels.remaining_key.set_label("Remaining");
+                labels.remaining.set_label("—");
             }
         }
     }

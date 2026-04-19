@@ -130,7 +130,7 @@ impl SimpleComponent for ApplicationModel {
     fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>) {
         match msg {
             ApplicationMsg::Close => {
-                println!("Click outside detected. Shutting down...");
+                log::debug!("Close requested. Shutting down.");
                 relm4::main_application().quit();
             }
         }
