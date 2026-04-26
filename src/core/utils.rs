@@ -1,11 +1,13 @@
 use std::path::PathBuf;
 
+/// Expand a path string, supporting `~`, `~user`, and `$VAR` references.
+/// Falls back to the input verbatim if expansion fails.
 pub fn expand_path(path: &str) -> Option<PathBuf> {
-    if let Some(stripped) = path.strip_prefix("~/") {
-        return dirs::home_dir().map(|mut home| {
-            home.push(stripped);
-            home
-        });
+    match shellexpand::full(path) {
+        Ok(expanded) => Some(PathBuf::from(expanded.as_ref())),
+        Err(e) => {
+            log::warn!("Failed to expand path '{}': {}", path, e);
+            None
+        }
     }
-    Some(PathBuf::from(path))
 }

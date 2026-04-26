@@ -1,5 +1,11 @@
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::time::Duration;
+
+use wait_timeout::ChildExt;
+
 use crate::core::config::CONFIG;
+
+const STATUS_TIMEOUT: Duration = Duration::from_millis(500);
 
 #[derive(Debug, PartialEq)]
 pub enum NotificationStatus {
@@ -9,20 +15,51 @@ pub enum NotificationStatus {
 
 fn spawn_cmd(cmd: &[String]) {
     if let [bin, args @ ..] = cmd {
-        let _ = Command::new(bin).args(args).spawn();
+        let _ = Command::new(bin)
+            .args(args)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn();
     }
 }
 
 pub fn get_status() -> NotificationStatus {
-    let Some(cfg) = CONFIG.get() else {
-        return NotificationStatus::Enabled;
-    };
+    let cfg = &*CONFIG;
 
     if let [bin, args @ ..] = cfg.notifications.status_cmd.as_slice() {
-        if let Ok(output) = Command::new(bin).args(args).output() {
-            let result = String::from_utf8_lossy(&output.stdout).trim().to_lowercase();
-            if result == "true" {
-                return NotificationStatus::Muted;
+        let mut child = match Command::new(bin)
+            .args(args)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+        {
+            Ok(c) => c,
+            Err(e) => {
+                log::warn!("Failed to spawn notifications status command: {e}");
+                return NotificationStatus::Enabled;
+            }
+        };
+
+        match child.wait_timeout(STATUS_TIMEOUT) {
+            Ok(Some(_status)) => {
+                let mut buf = String::new();
+                if let Some(mut out) = child.stdout.take() {
+                    use std::io::Read;
+                    let _ = out.read_to_string(&mut buf);
+                }
+                if buf.trim().eq_ignore_ascii_case("true") {
+                    return NotificationStatus::Muted;
+                }
+            }
+            Ok(None) => {
+                log::warn!("Notifications status command timed out, treating as enabled");
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            Err(e) => {
+                log::warn!("Error waiting for notifications status command: {e}");
             }
         }
     }
@@ -31,19 +68,13 @@ pub fn get_status() -> NotificationStatus {
 }
 
 pub fn enable() {
-    if let Some(cfg) = CONFIG.get() {
-        spawn_cmd(&cfg.notifications.unmute_cmd);
-    }
+    spawn_cmd(&CONFIG.notifications.unmute_cmd);
 }
 
 pub fn mute() {
-    if let Some(cfg) = CONFIG.get() {
-        spawn_cmd(&cfg.notifications.mute_cmd);
-    }
+    spawn_cmd(&CONFIG.notifications.mute_cmd);
 }
 
 pub fn clear_all() {
-    if let Some(cfg) = CONFIG.get() {
-        spawn_cmd(&cfg.notifications.clear_all_cmd);
-    }
+    spawn_cmd(&CONFIG.notifications.clear_all_cmd);
 }

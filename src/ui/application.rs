@@ -4,8 +4,12 @@ use crate::ui::search::SearchModel;
 use crate::ui::time::TimeModel;
 use gtk4::prelude::*;
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
-use relm4::{gtk, ComponentParts, ComponentSender, Controller, SimpleComponent};
 use relm4::{Component, ComponentController};
+use relm4::{ComponentParts, ComponentSender, Controller, SimpleComponent, gtk};
+
+const CONTAINER_WIDTH: i32 = 640;
+const WINDOW_TOP_OFFSET: i32 = 200;
+const STATUS_BAR_SPACING: i32 = 8;
 
 pub struct ApplicationModel {
     search_component: Controller<SearchModel>,
@@ -39,13 +43,13 @@ impl SimpleComponent for ApplicationModel {
             },
 
             gtk::Overlay {
-                // Splash screen
+                // Splash screen.
                 #[wrap(Some)]
                 set_child = &gtk::Box {
                     set_hexpand: true,
                     set_vexpand: true,
 
-                    // Click outside
+                    // Click outside the spotlight container to close.
                     add_controller = gtk::GestureClick {
                         connect_pressed[sender] => move |_, _, _, _| {
                             sender.input(ApplicationMsg::Close);
@@ -53,17 +57,17 @@ impl SimpleComponent for ApplicationModel {
                     }
                 },
 
-                // Main application
+                // Main spotlight container.
                 add_overlay = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
                     set_halign: gtk::Align::Center,
                     set_valign: gtk::Align::Start,
-                    set_margin_top: 200,
+                    set_margin_top: WINDOW_TOP_OFFSET,
 
                     gtk::Box {
                         set_orientation: gtk::Orientation::Vertical,
                         add_css_class: "spotlight-container",
-                        set_width_request: 640,
+                        set_width_request: CONTAINER_WIDTH,
 
                         model.search_component.widget(),
 
@@ -72,18 +76,15 @@ impl SimpleComponent for ApplicationModel {
 
                             #[wrap(Some)]
                             set_start_widget = &gtk::Box {
-                                // Time and Date
                                 model.time_component.widget(),
                             },
 
                             #[wrap(Some)]
                             set_end_widget = &gtk::Box {
-                                set_spacing: 8,
+                                set_spacing: STATUS_BAR_SPACING,
                                 set_halign: gtk::Align::End,
 
-                                // Notifications
                                 model.notifications_component.widget(),
-                                // Battery
                                 model.battery_component.widget(),
                             }
                         },

@@ -1,5 +1,5 @@
 use gtk4::prelude::*;
-use relm4::{gtk, ComponentParts, ComponentSender, RelmWidgetExt, SimpleComponent};
+use relm4::{ComponentParts, ComponentSender, RelmWidgetExt, SimpleComponent, gtk};
 
 use crate::core::notifications::{self, NotificationStatus};
 
@@ -104,8 +104,10 @@ impl SimpleComponent for NotificationModel {
     }
 
     fn init(_init: (), root: Self::Root, sender: ComponentSender<Self>) -> ComponentParts<Self> {
+        let _ = sender;
+        let _ = root;
         let model = Self {
-            // Initial stub value, actual status will be fetched on menu open
+            // Initial stub value, actual status will be fetched when popover opens.
             status: NotificationStatus::Enabled,
         };
         let widgets = view_output!();
@@ -115,7 +117,6 @@ impl SimpleComponent for NotificationModel {
     fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>) {
         match msg {
             NotificationMsg::RefreshStatus => {
-                // Called automatically when popover opens
                 self.status = notifications::get_status();
             }
             NotificationMsg::SetEnabled => {

@@ -1,10 +1,11 @@
 use gtk4::prelude::*;
-use relm4::{gtk, ComponentParts, ComponentSender, SimpleComponent};
+use relm4::{ComponentParts, ComponentSender, SimpleComponent, gtk};
 
-use crate::core::apps::{get_all_apps, launch_app, AppInfo};
+use crate::core::apps::{AppInfo, get_all_apps, launch_app};
 use crate::core::usage::{load_usage, record_launch};
 
 pub const MAX_APPLICATIONS: usize = 5;
+const APP_TILE_HEIGHT: i32 = 64;
 
 pub struct AppsModel {
     pub filter_query: String,
@@ -45,7 +46,7 @@ impl SimpleComponent for AppsModel {
             set_halign: gtk::Align::Fill,
             set_homogeneous: true,
             set_valign: gtk::Align::Start,
-            set_max_children_per_line: 5,
+            set_max_children_per_line: MAX_APPLICATIONS as u32,
             set_min_children_per_line: 1,
             set_column_spacing: 8,
             set_row_spacing: 16,
@@ -66,11 +67,11 @@ impl SimpleComponent for AppsModel {
             let item_box = gtk::Box::new(gtk::Orientation::Vertical, 8);
             item_box.set_halign(gtk::Align::Fill);
             item_box.set_valign(gtk::Align::Start);
-            item_box.set_size_request(-1, 64);
+            item_box.set_size_request(-1, APP_TILE_HEIGHT);
             item_box.add_css_class("app-item-box");
 
             let icon = gtk::Image::builder()
-                .pixel_size(64)
+                .pixel_size(APP_TILE_HEIGHT)
                 .halign(gtk::Align::Center)
                 .css_classes(["app-icon"])
                 .build();
@@ -91,8 +92,12 @@ impl SimpleComponent for AppsModel {
 
             let flow_child = gtk::FlowBoxChild::new();
             flow_child.set_focusable(false);
+            // Keep slots visible from the start to reserve layout space —
+            // empty-state styling is applied via the `.empty` CSS class.
+            flow_child.set_visible(true);
+            flow_child.set_can_target(false);
             flow_child.set_child(Some(&item_box));
-            flow_child.set_visible(false);
+            item_box.add_css_class("empty");
 
             widgets.flowbox.append(&flow_child);
 
@@ -105,7 +110,7 @@ impl SimpleComponent for AppsModel {
         }
 
         let model = Self {
-            filter_query: "".to_string(),
+            filter_query: String::new(),
             all_apps: Vec::new(),
             displayed_apps: Vec::new(),
             widget_slots,
@@ -127,9 +132,9 @@ impl SimpleComponent for AppsModel {
                 let usage = load_usage();
 
                 apps.sort_by(|a, b| {
-                    let count_a = usage.get(&a.name).unwrap_or(&0);
-                    let count_b = usage.get(&b.name).unwrap_or(&0);
-                    count_b.cmp(count_a).then(a.name.cmp(&b.name))
+                    let count_a = usage.get(&a.name).copied().unwrap_or(0);
+                    let count_b = usage.get(&b.name).copied().unwrap_or(0);
+                    count_b.cmp(&count_a).then_with(|| a.name.cmp(&b.name))
                 });
 
                 self.all_apps = apps;
@@ -145,8 +150,9 @@ impl SimpleComponent for AppsModel {
                     return;
                 }
 
-                let new_idx = self.selected_idx as i32 + dx + (dy * 5);
-                self.selected_idx = new_idx.clamp(0, visible_count.saturating_sub(1) as i32) as usize;
+                let new_idx = self.selected_idx as i32 + dx + (dy * MAX_APPLICATIONS as i32);
+                self.selected_idx =
+                    new_idx.clamp(0, visible_count.saturating_sub(1) as i32) as usize;
 
                 self.update_selection_visuals();
             }
@@ -193,9 +199,13 @@ impl AppsModel {
                     slot.icon.set_icon_name(Some(&app.icon));
                 }
 
-                slot.flow_child.set_visible(true);
+                slot.item_box.remove_css_class("empty");
+                slot.flow_child.set_can_target(true);
             } else {
-                slot.flow_child.set_visible(false);
+                slot.label.set_label("");
+                slot.icon.set_icon_name(None);
+                slot.item_box.add_css_class("empty");
+                slot.flow_child.set_can_target(false);
             }
         }
 
@@ -205,7 +215,8 @@ impl AppsModel {
 
     fn update_selection_visuals(&self) {
         for (i, slot) in self.widget_slots.iter().enumerate() {
-            if !slot.flow_child.is_visible() {
+            if i >= self.displayed_apps.len() {
+                slot.item_box.remove_css_class("selected-app");
                 continue;
             }
             if i == self.selected_idx {

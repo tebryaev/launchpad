@@ -1,10 +1,10 @@
 use crate::core::calculator::evaluate;
 use gtk4::prelude::*;
-use relm4::{gtk, ComponentParts, ComponentSender, SimpleComponent};
+use relm4::{ComponentParts, ComponentSender, SimpleComponent, gtk};
 
 pub struct TextModel {
     pub expression: String,
-    pub result: String,
+    pub result: Option<String>,
 }
 
 #[derive(Debug)]
@@ -38,11 +38,7 @@ impl SimpleComponent for TextModel {
                 set_ellipsize: gtk::pango::EllipsizeMode::End,
 
                 #[watch]
-                set_label: if model.result.is_empty() {
-                    "..."
-                } else {
-                    &model.result
-                },
+                set_label: model.result.as_deref().unwrap_or("..."),
             },
 
             gtk::Label {
@@ -65,9 +61,10 @@ impl SimpleComponent for TextModel {
     }
 
     fn init(_init: (), root: Self::Root, _sender: ComponentSender<Self>) -> ComponentParts<Self> {
+        let _ = root;
         let model = Self {
-            expression: "".to_string(),
-            result: "".to_string(),
+            expression: String::new(),
+            result: None,
         };
         let widgets = view_output!();
         ComponentParts { model, widgets }
@@ -76,16 +73,12 @@ impl SimpleComponent for TextModel {
     fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>) {
         match msg {
             TextMsg::ProcessQuery(q) => {
-                self.expression = q.clone();
-
-                if !q.trim().is_empty() {
-                    if let Some(res) = evaluate(&q) {
-                        self.result = res;
-                    } else {
-                        self.result = "...".to_string();
-                    }
+                if q.trim().is_empty() {
+                    self.expression.clear();
+                    self.result = None;
                 } else {
-                    self.result = "".to_string();
+                    self.expression = q.clone();
+                    self.result = evaluate(&q);
                 }
             }
         }

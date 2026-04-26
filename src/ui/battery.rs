@@ -1,8 +1,10 @@
 use gtk::glib::ControlFlow;
 use gtk4::prelude::*;
-use relm4::{gtk, ComponentParts, ComponentSender, RelmWidgetExt, SimpleComponent};
+use relm4::{ComponentParts, ComponentSender, RelmWidgetExt, SimpleComponent, gtk};
 
-use crate::core::battery::{get_battery_info, BatteryInfo, BatteryStatus};
+use crate::core::battery::{
+    BatteryInfo, BatteryStatus, get_battery_info, time_remaining_is_meaningful,
+};
 
 pub struct BatteryModel {
     info: Option<BatteryInfo>,
@@ -56,16 +58,24 @@ fn status_text(info: &BatteryInfo) -> &'static str {
 }
 
 fn remaining_text(info: &BatteryInfo) -> String {
-    if info.time_remaining_min > 0.0 && info.time_remaining_min < 1440.0 {
-        let h = (info.time_remaining_min / 60.0) as i32;
-        let m = (info.time_remaining_min % 60.0) as i32;
-        if h > 0 {
-            format!("{}h {}m", h, m)
-        } else {
-            format!("{}m", m)
+    match info.time_remaining_min {
+        Some(min) if time_remaining_is_meaningful(min) => {
+            let h = (min / 60.0) as i32;
+            let m = (min % 60.0) as i32;
+            if h > 0 {
+                format!("{h}h {m}m")
+            } else {
+                format!("{m}m")
+            }
         }
-    } else {
-        "—".to_string()
+        _ => "—".to_string(),
+    }
+}
+
+fn power_text(info: &BatteryInfo) -> String {
+    match info.power_w {
+        Some(w) => format!("{w:.1} W"),
+        None => "N/A".to_string(),
     }
 }
 
@@ -110,15 +120,17 @@ impl SimpleComponent for BatteryModel {
     }
 
     fn init(_init: (), root: Self::Root, sender: ComponentSender<Self>) -> ComponentParts<Self> {
-        let model = Self {
+        let _ = sender;
+        // The `view!` macro references `model`, so we need an initial value before
+        // `view_output!()`. After the widgets exist we attach the popover handle.
+        let mut model = Self {
             info: None,
             timer_id: None,
             popover: None,
             popover_labels: None,
         };
         let widgets = view_output!();
-        let popover = root.popover();
-        let model = Self { popover, ..model };
+        model.popover = root.popover();
         ComponentParts { model, widgets }
     }
 
@@ -130,7 +142,7 @@ impl SimpleComponent for BatteryModel {
                 if self.timer_id.is_none() {
                     let sender_clone = sender.clone();
                     let id = gtk::glib::timeout_add_seconds_local(5, move || {
-                        let _ = sender_clone.input(BatteryMsg::Tick);
+                        sender_clone.input(BatteryMsg::Tick);
                         ControlFlow::Continue
                     });
                     self.timer_id = Some(id);
@@ -153,6 +165,14 @@ impl SimpleComponent for BatteryModel {
                 self.ensure_popover_content();
                 self.refresh_popover();
             }
+        }
+    }
+}
+
+impl Drop for BatteryModel {
+    fn drop(&mut self) {
+        if let Some(id) = self.timer_id.take() {
+            id.remove();
         }
     }
 }
@@ -218,29 +238,33 @@ impl BatteryModel {
     }
 
     fn refresh_popover(&self) {
-        let Some(labels) = &self.popover_labels else { return };
+        let Some(labels) = &self.popover_labels else {
+            return;
+        };
         match &self.info {
             Some(info) => {
                 labels.status.set_label(status_text(info));
                 labels.charge.set_label(&format!("{}%", info.capacity));
-                labels.power_key.set_label(if info.status == BatteryStatus::Charging {
+                let power_key = if info.status == BatteryStatus::Charging {
                     "Power"
                 } else {
                     "Consumption"
-                });
-                labels.power.set_label(&format!("{:.1} W", info.power_w));
-                labels.remaining_key.set_label(if info.status == BatteryStatus::Charging {
+                };
+                labels.power_key.set_label(power_key);
+                labels.power.set_label(&power_text(info));
+                let remaining_key = if info.status == BatteryStatus::Charging {
                     "Until full"
                 } else {
                     "Remaining"
-                });
+                };
+                labels.remaining_key.set_label(remaining_key);
                 labels.remaining.set_label(&remaining_text(info));
             }
             None => {
                 labels.status.set_label("N/A");
                 labels.charge.set_label("N/A");
                 labels.power_key.set_label("Consumption");
-                labels.power.set_label("0.0 W");
+                labels.power.set_label("N/A");
                 labels.remaining_key.set_label("Remaining");
                 labels.remaining.set_label("—");
             }

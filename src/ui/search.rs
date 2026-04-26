@@ -1,11 +1,10 @@
 use crate::ui::apps::{AppsModel, MAX_APPLICATIONS};
 use crate::ui::text::TextModel;
 use gtk4::prelude::*;
-use relm4::{gtk, ComponentParts, ComponentSender, Controller, SimpleComponent};
 use relm4::{Component, ComponentController};
+use relm4::{ComponentParts, ComponentSender, Controller, SimpleComponent, gtk};
 
 pub struct SearchModel {
-    search_query: String,
     app_count: usize,
     apps_component: Controller<AppsModel>,
     text_component: Controller<TextModel>,
@@ -73,6 +72,7 @@ impl SimpleComponent for SearchModel {
     }
 
     fn init(_init: (), root: Self::Root, sender: ComponentSender<Self>) -> ComponentParts<Self> {
+        let _ = root;
         let apps_component = AppsModel::builder()
             .launch(())
             .forward(sender.input_sender(), SearchMsg::UpdateAppCount);
@@ -117,7 +117,6 @@ impl SimpleComponent for SearchModel {
         });
 
         let model = Self {
-            search_query: "".to_string(),
             app_count: MAX_APPLICATIONS,
             apps_component,
             text_component,
@@ -134,43 +133,40 @@ impl SimpleComponent for SearchModel {
     fn update(&mut self, msg: Self::Input, _sender: ComponentSender<Self>) {
         match msg {
             SearchMsg::UpdateQuery(query) => {
-                self.search_query = query.clone();
-
-                self.apps_component
+                let _ = self
+                    .apps_component
                     .sender()
-                    .send(crate::ui::apps::AppsMsg::UpdateFilter(query.clone()))
-                    .unwrap();
-                self.text_component
+                    .send(crate::ui::apps::AppsMsg::UpdateFilter(query.clone()));
+                let _ = self
+                    .text_component
                     .sender()
-                    .send(crate::ui::text::TextMsg::ProcessQuery(query))
-                    .unwrap();
+                    .send(crate::ui::text::TextMsg::ProcessQuery(query));
             }
             SearchMsg::Submit => {
                 if self.app_count > 0 {
-                    self.apps_component
+                    let _ = self
+                        .apps_component
                         .sender()
-                        .send(crate::ui::apps::AppsMsg::LaunchSelected)
-                        .unwrap();
+                        .send(crate::ui::apps::AppsMsg::LaunchSelected);
                 }
             }
             SearchMsg::MoveSelection(dx, dy) => {
                 if self.app_count > 0 {
-                    self.apps_component
+                    let _ = self
+                        .apps_component
                         .sender()
-                        .send(crate::ui::apps::AppsMsg::MoveSelection(dx, dy))
-                        .unwrap();
+                        .send(crate::ui::apps::AppsMsg::MoveSelection(dx, dy));
                 }
             }
             SearchMsg::UpdateAppCount(count) => {
                 self.app_count = count;
 
-                if self.app_count == 0 {
-                    self.key_controller
-                        .set_propagation_phase(gtk::PropagationPhase::None);
+                let phase = if self.app_count == 0 {
+                    gtk::PropagationPhase::None
                 } else {
-                    self.key_controller
-                        .set_propagation_phase(gtk::PropagationPhase::Capture);
-                }
+                    gtk::PropagationPhase::Capture
+                };
+                self.key_controller.set_propagation_phase(phase);
             }
         }
     }

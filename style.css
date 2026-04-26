@@ -1,17 +1,30 @@
-/* Background and Main Window */
+/*
+ * Launchpad — Nord-themed styles.
+ * Palette reference: https://www.nordtheme.com
+ */
+
+/*
+ * Window & container
+ */
+
+/* Translucent backdrop covering the whole layer surface. */
 .spotlight-overlay {
     background-color: rgba(36, 41, 51, 0.5);
 }
 
+/* The Spotlight-style card that holds search, app grid and status bar. */
 .spotlight-container {
-    background-color: rgba(46, 52, 64, 0.95); /* Nord 1 */
+    background-color: rgba(46, 52, 64, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 24px;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
 
-/* Search Input */
+/*
+ * Search input (top of the card)
+ */
+
 entry.spotlight-input,
 entry.spotlight-input:focus,
 entry.spotlight-input:focus-within {
@@ -31,51 +44,57 @@ entry.spotlight-input text:focus {
     box-shadow: none;
 }
 
+/* Leading magnifier icon (only shown if a SearchEntry is used). */
 window .spotlight-container searchentry.spotlight-input image.left {
     color: #88c0d0;
     -gtk-icon-size: 36px;
     margin-right: 16px;
 }
 
+/* Trailing clear icon. */
 window .spotlight-container searchentry.spotlight-input image.right {
     color: #4c566a;
     -gtk-icon-size: 24px;
 }
 
-/* Separator */
+/* Hairline divider between sections. */
 .spotlight-separator {
     min-height: 1px;
-    background-color: #434c5e; /* Nord 2 */
+    background-color: #434c5e;
     margin-top: 0;
     margin-bottom: 0;
 }
 
-/* Status Bar */
+/*
+ * Status bar (bottom of the card: time, notifications, battery)
+ */
+
 .status-bar {
     margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid rgba(216, 222, 233, 0.05);
 }
 
-/* Status Pills */
+/* Pill-shaped buttons used by the time/battery/notifications widgets. */
 menubutton.status-pill > button,
 label.status-pill {
-    background-color: rgba(67, 76, 94, 0.4); /* Nord 3 */
+    background-color: rgba(67, 76, 94, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.02);
     border-radius: 100px;
     padding: 4px 12px;
-    color: #d8dee9; /* Nord 4 */
+    color: #d8dee9;
     font-weight: 600;
     font-size: 13px;
     transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 menubutton.status-pill > button:hover {
-    background-color: #4c566a; /* Nord 3 */
+    background-color: #4c566a;
     color: #eceff4;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Pressed and "popover open" states share the same look. */
 menubutton.status-pill > button:active,
 menubutton.status-pill > button:checked {
     background-color: rgba(255, 255, 255, 0.12);
@@ -84,7 +103,11 @@ menubutton.status-pill > button:checked {
     box-shadow: none;
 }
 
-/* App Grid */
+/*
+ * App grid (results below the search field)
+ */
+
+/* Currently unused placeholder background — kept around for future skeleton state. */
 .app-icon-placeholder {
     background: linear-gradient(135deg, #434c5e 0%, #3b4252 100%);
     border: 1px solid rgba(255,255,255, 0.05);
@@ -93,13 +116,13 @@ menubutton.status-pill > button:checked {
 }
 
 .app-label {
-    color: #e5e9f0; /* Nord 5 */
+    color: #e5e9f0;
     font-size: 13px;
     font-weight: 500;
     margin-top: 8px;
 }
 
-/* App Grid Focus */
+/* Suppress GTK's own focus/selection chrome on FlowBox cells — we draw our own. */
 flowboxchild {
     padding: 0;
     background: transparent;
@@ -111,50 +134,74 @@ flowboxchild:focus, flowboxchild:selected {
     box-shadow: none;
 }
 
+/*
+ * A single app tile (icon + label). min-height reserves layout space so the
+ * window doesn't grow when the first results arrive after startup.
+ */
 .app-item-box {
     border-radius: 12px;
     padding: 10px;
     transition: all 0.15s ease;
     outline: 2px solid transparent;
     outline-offset: -2px;
+    min-height: 110px;
 }
 
 .app-item-box:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* Empty slots — present in the layout, hidden from the eye and from input. */
+.app-item-box.empty,
+.app-item-box.empty:hover {
+    background-color: transparent;
+    box-shadow: none;
+    outline: 2px solid transparent;
+}
+
+/* Keyboard-selected tile (driven by AppsModel::selected_idx). */
 .app-item-box.selected-app {
-    background-color: rgba(136, 192, 208, 0.1); /* Nord 8 */
+    background-color: rgba(136, 192, 208, 0.1);
     outline: 2px solid rgba(136, 192, 208, 0.25);
 }
 
-/* Calculator */
+/*
+ * Calculator fallback (shown when no app matches the query)
+ */
+
 .calc-result {
-    color: #88c0d0; /* Nord 8 */
+    color: #88c0d0;
     font-size: 56px;
     font-weight: 300;
     letter-spacing: -1px;
 }
 
 .calc-expression {
-    color: #d8dee9; /* Nord 4 */
+    color: #d8dee9;
     font-size: 20px;
     font-weight: 200;
     opacity: 0.6;
 }
 
-/* Popovers and Calendar (Nord 1) */
+/*
+ * Popovers (battery details, notifications menu, calendar)
+ */
+
 popover.nord-popover {
     margin: 9px;
 }
 
 popover.nord-popover contents {
-    background-color: rgba(46, 52, 64, 0.95); /* Nord 1 */
+    background-color: rgba(46, 52, 64, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 14px;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
     padding: 10px;
 }
+
+/*
+ * Calendar (popover under the time pill)
+ */
 
 .nord-calendar {
     background: transparent;
@@ -162,6 +209,7 @@ popover.nord-popover contents {
     border: none;
 }
 
+/* Strip default GTK chrome from header, grid and navigation buttons. */
 .nord-calendar header,
 .nord-calendar grid,
 .nord-calendar button {
@@ -174,6 +222,7 @@ popover.nord-popover contents {
     padding-bottom: 8px;
 }
 
+/* "April 2026" label in the header. */
 .nord-calendar header label {
     font-weight: 300;
     color: #eceff4;
@@ -181,6 +230,7 @@ popover.nord-popover contents {
     letter-spacing: 0.5px;
 }
 
+/* Prev/next month arrows. */
 .nord-calendar header button {
     min-width: 24px;
     min-height: 24px;
@@ -199,6 +249,7 @@ popover.nord-popover contents {
     border-spacing: 4px;
 }
 
+/* Mon/Tue/... weekday header row. */
 .nord-calendar grid label.day-name {
     color: #434c5e;
     font-weight: 700;
@@ -208,6 +259,7 @@ popover.nord-popover contents {
     padding-bottom: 6px;
 }
 
+/* Day cells inside the grid. */
 .nord-calendar grid label.day-number {
     font-size: 13px;
     font-weight: 300;
@@ -225,6 +277,7 @@ popover.nord-popover contents {
     font-weight: 500;
 }
 
+/* Days from previous/next month — dimmed. */
 .nord-calendar grid label.day-number.other-month {
     color: #3b4252;
     font-weight: 300;
@@ -235,6 +288,7 @@ popover.nord-popover contents {
     color: #4c566a;
 }
 
+/* Today's date — inverted with an accent ring. */
 .nord-calendar grid label.today {
     background-color: #eceff4;
     color: #2e3440;
@@ -243,11 +297,14 @@ popover.nord-popover contents {
 }
 
 .nord-calendar grid label.today:hover {
-    background-color: #e5e9f0; /* Nord 5 */
+    background-color: #e5e9f0;
     color: #2e3440;
 }
 
-/* Menu Items */
+/*
+ * Menu items (notifications popover: Enabled / DnD / Clear All)
+ */
+
 button.menu-item-btn {
     border-radius: 8px;
     padding: 8px 12px;
@@ -263,16 +320,20 @@ button.menu-item-btn:hover {
     color: #eceff4;
 }
 
+/* Leading checkmark column; reserved width keeps labels aligned. */
 .menu-checkmark {
-    color: #88c0d0; /* Nord 8 */
+    color: #88c0d0;
     font-weight: 900;
     font-size: 14px;
     min-width: 16px;
 }
 
-/* Property Tables */
+/*
+ * Battery popover key/value table
+ */
+
 .table-key {
-    color: #81a1c1; /* Nord 9 */
+    color: #81a1c1;
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 1.5px;
@@ -280,7 +341,7 @@ button.menu-item-btn:hover {
 }
 
 .table-value {
-    color: #eceff4; /* Nord 6 */
+    color: #eceff4;
     font-size: 13px;
     font-weight: 500;
 }
