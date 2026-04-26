@@ -136,7 +136,9 @@ flowboxchild:focus, flowboxchild:selected {
 
 /*
  * A single app tile (icon + label). min-height reserves layout space so the
- * window doesn't grow when the first results arrive after startup.
+ * window doesn't grow when the first results arrive after startup. The value
+ * matches the natural content height (icon + spacing + label) so populated
+ * tiles aren't padded with extra blank space below the label.
  */
 .app-item-box {
     border-radius: 12px;
@@ -144,7 +146,7 @@ flowboxchild:focus, flowboxchild:selected {
     transition: all 0.15s ease;
     outline: 2px solid transparent;
     outline-offset: -2px;
-    min-height: 110px;
+    min-height: 90px;
 }
 
 .app-item-box:hover {
